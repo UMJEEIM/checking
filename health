@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>통풍 음식 체커</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* HTML body에 기본 폰트와 배경색 설정 */
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f3f4f6; /* 연한 회색 배경 */
+        }
+        /* 결과 박스에 부드러운 전환 효과 추가 */
+        #resultBox {
+            transition: all 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-md mx-auto bg-white rounded-2xl shadow-lg p-6 sm:p-8">
+        
+        <header class="text-center mb-6">
+            <h1 class="text-3xl font-bold text-gray-800">통풍 음식 체커 👨‍⚕️</h1>
+            <p class="text-gray-500 mt-2">음식을 검색하여 퓨린 함량을 확인하세요.</p>
+        </header>
+
+        <!-- 검색창 섹션 -->
+        <main>
+            <div class="flex items-center border-2 border-blue-500 rounded-lg overflow-hidden">
+                <input type="text" id="foodInput" placeholder="예: 소고기, 맥주, 시금치..." class="w-full p-4 border-0 focus:ring-0 text-base sm:text-lg">
+                <button id="searchButton" class="bg-blue-500 hover:bg-blue-600 text-white font-bold p-4 px-5 text-base sm:text-lg">
+                    검색
+                </button>
+            </div>
+
+            <!-- 결과 표시 영역 -->
+            <div id="resultBox" class="mt-6 p-5 rounded-lg text-center bg-gray-100">
+                <p id="resultText" class="text-base sm:text-lg font-semibold text-gray-700">궁금한 음식을 검색해 보세요.</p>
+            </div>
+        </main>
+        
+        <!-- 범례 섹션 -->
+        <footer class="mt-6 text-xs text-gray-500">
+            <h3 class="font-bold text-sm mb-2 text-center">결과 안내</h3>
+            <div class="flex flex-col sm:flex-row justify-around space-y-1 sm:space-y-0 text-center">
+                <p><span class="inline-block w-3 h-3 bg-red-500 rounded-full mr-1 align-middle"></span> <strong>주의:</strong> 퓨린 함량 매우 높음</p>
+                <p><span class="inline-block w-3 h-3 bg-yellow-400 rounded-full mr-1 align-middle"></span> <strong>적당량:</strong> 퓨린 함량 다소 있음</p>
+                <p><span class="inline-block w-3 h-3 bg-green-500 rounded-full mr-1 align-middle"></span> <strong>안심:</strong> 퓨린 함량이 낮음</p>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // 음식 데이터베이스: 퓨린 함량에 따라 'high', 'moderate', 'low'로 분류
+        const foodData = {
+            // 주의 (high): 퓨린 함량 매우 높은 음식 (100g당 150mg 이상)
+            "소고기": "high", "돼지고기": "high", "양고기": "high", "소간": "high", "간": "high",
+            "곱창": "high", "천엽": "high", "내장": "high", "등심": "high", "갈비": "high",
+            "고등어": "high", "정어리": "high", "멸치": "high", "꽁치": "high", "참치": "high", "연어": "high",
+            "맥주": "high", "새우": "high", "가리비": "high", "홍합": "high", "생선알": "high",
+
+            // 적당량 (moderate): 퓨린 함량 중간 음식 (100g당 50-150mg)
+            "닭고기": "moderate", "오리고기": "moderate", "햄": "moderate", "베이컨": "moderate",
+            "장어": "moderate", "게": "moderate", "조개": "moderate", "오징어": "moderate",
+            "콩": "moderate", "팥": "moderate", "두부": "moderate", "된장": "moderate",
+            "시금치": "moderate", "아스파라거스": "moderate", "버섯": "moderate",
+
+            // 안심 (low): 퓨린 함량 낮은 음식 (100g당 0-50mg)
+            "계란": "low", "달걀": "low", "우유": "low", "치즈": "low", "요거트": "low",
+            "쌀": "low", "밥": "low", "빵": "low", "밀가루": "low", "메밀": "low", "국수": "low",
+            "감자": "low", "고구마": "low", "옥수수": "low",
+            "사과": "low", "배": "low", "바나나": "low", "딸기": "low", "오렌지": "low", "토마토": "low",
+            "상추": "low", "양배추": "low", "오이": "low", "당근": "low", "호박": "low",
+            "김": "low", "미역": "low", "다시마": "low",
+            "커피": "low", "와인": "low", "주스": "low"
+        };
+        
+        // 검색어와 가장 유사한 음식 키워드를 찾는 함수 (예: '소고기 등심' -> '소고기')
+        function findBestMatchKey(query) {
+            const foodKeys = Object.keys(foodData);
+            // 정확히 일치하는 경우 먼저 반환
+            if (foodData[query]) {
+                return query;
+            }
+            // 포함되는 키워드가 있는지 확인
+            for (const key of foodKeys) {
+                if (query.includes(key)) {
+                    return key;
+                }
+            }
+            return null; // 일치하는 키워드가 없는 경우
+        }
+
+        // DOM 요소 가져오기
+        const foodInput = document.getElementById('foodInput');
+        const searchButton = document.getElementById('searchButton');
+        const resultBox = document.getElementById('resultBox');
+        const resultText = document.getElementById('resultText');
+
+        // 검색을 실행하는 함수
+        function performSearch() {
+            const query = foodInput.value.trim(); // 입력값의 앞뒤 공백 제거
+            if (query === "") {
+                resultText.textContent = "검색할 음식 이름을 입력해주세요.";
+                resultBox.className = 'mt-6 p-5 rounded-lg text-center bg-gray-100'; // 기본 스타일로 복귀
+                return;
+            }
+            
+            const bestMatchKey = findBestMatchKey(query);
+            const resultLevel = foodData[bestMatchKey];
+
+            // 결과에 따라 스타일과 텍스트를 동적으로 변경
+            let styleClass = '';
+            let message = '';
+
+            if (resultLevel === 'high') {
+                styleClass = 'bg-red-100 border-2 border-red-500';
+                message = `<strong class="text-red-700">'${bestMatchKey}'</strong>(은)는 퓨린 함량이 높아 <strong class="underline text-red-800">주의</strong>가 필요합니다.`;
+            } else if (resultLevel === 'moderate') {
+                styleClass = 'bg-yellow-100 border-2 border-yellow-500';
+                message = `<strong class="text-yellow-700">'${bestMatchKey}'</strong>(은)는 퓨린이 있어 <strong class="underline text-yellow-800">적당량 섭취</strong>하는 것이 좋습니다.`;
+            } else if (resultLevel === 'low') {
+                styleClass = 'bg-green-100 border-2 border-green-500';
+                message = `<strong class="text-green-700">'${bestMatchKey}'</strong>(은)는 퓨린 함량이 낮아 <strong class="underline text-green-800">안심</strong>하고 드실 수 있습니다.`;
+            } else {
+                styleClass = 'bg-gray-200 border-2 border-gray-400';
+                message = `<strong class="text-gray-800">'${query}'</strong>에 대한 정보가 없습니다. 다른 이름으로 검색해보세요.`;
+            }
+            
+            // 결과 표시 영역의 클래스와 내용을 한 번에 업데이트
+            resultBox.className = `mt-6 p-5 rounded-lg text-center ${styleClass}`;
+            resultText.innerHTML = message;
+        }
+
+        // 검색 버튼 클릭 시 검색 실행
+        searchButton.addEventListener('click', performSearch);
+        
+        // 입력창에서 Enter 키를 눌렀을 때 검색 실행
+        foodInput.addEventListener('keyup', (event) => {
+            if (event.key === 'Enter') {
+                performSearch();
+            }
+        });
+    </script>
+</body>
+</html>
